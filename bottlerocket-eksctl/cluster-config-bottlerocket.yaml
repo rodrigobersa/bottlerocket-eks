@@ -1,0 +1,23 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: bottlerocket-mng
+  region: us-west-2
+  version: "1.27"
+
+managedNodeGroups:
+  - name: br2
+    instanceType: m5a.large
+    desiredCapacity: 1
+    volumeKmsKeyID: 531718ad-b7a0-47b5-8d67-82cf9ad5afcd
+    volumeEncrypted: true
+    volumeSize: 50
+    additionalVolumes:
+      - volumeName: /dev/xvdb 
+        volumeSize: 50
+        volumeEncrypted: true
+        volumeKmsKeyID:	531718ad-b7a0-47b5-8d67-82cf9ad5afcd
+    amiFamily: Bottlerocket
+    # Uncomment the following line to automatically label nodes for Bottlerocket Update Operator
+    # labels: { bottlerocket.aws/updater-interface-version: 2.0.0 }
