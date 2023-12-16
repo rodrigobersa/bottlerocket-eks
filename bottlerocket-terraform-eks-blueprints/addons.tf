@@ -18,6 +18,9 @@ module "eks_blueprints_addons" {
   oidc_provider_arn = module.eks.oidc_provider_arn
 
   enable_cert_manager = true
+  cert_manager = {
+    wait = true
+  }
 
   helm_releases = {
     burpop-crd = {
