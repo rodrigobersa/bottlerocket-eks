@@ -55,8 +55,8 @@ module "eks" {
     bottlerocket = {
       platform = "bottlerocket"
 
-      # Uncomment the following line to not use the latest AMI
-      # ami_id = data.aws_ami.eks_bottlerocket.image_id
+      # Uncomment the following line to use a custom ami_id, this can be provided by a data-source
+      ami_id = data.aws_ami.eks_bottlerocket.image_id
 
       min_size     = 1
       max_size     = 5
@@ -83,13 +83,10 @@ module "eks" {
         }
       }
       # The following line MUST be changed to true if you want to use a custom ami_id
-      use_custom_launch_template = false
-
-      # Uncomment the following line to use a custom ami_id, this can be provided by a data-source
-      # ami_id = data.aws_ami.eks_bottlerocket.image_id
+      use_custom_launch_template = true 
 
       # The next line MUST be uncomment if using a custom_launch_template is set to true
-      # enable_bootstrap_user_data = true
+      enable_bootstrap_user_data = true
 
       # Uncomment the following block to customize your Bottlerocket user-data, these are some examples of valid arguments
       #   bootstrap_extra_args       = <<-EOT
