@@ -383,6 +383,10 @@ Resources:
               - 'kms:CreateGrant'
               - 'kms:GenerateDataKeyWithoutPlaintext'
             Resource: '*'
+            Condition:
+              StringEquals: 
+                kms:ViaService: ec2.us-west-2.amazonaws.com
+                kms:CallerAccount: !Ref AWS::AccountId
   LaunchTemplate:
     Type: 'AWS::EC2::LaunchTemplate'
     Properties:
