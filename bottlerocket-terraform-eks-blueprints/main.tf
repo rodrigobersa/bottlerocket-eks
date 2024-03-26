@@ -45,7 +45,8 @@ data "aws_caller_identity" "current" {}
 # Variables
 ################################################################################
 locals {
-  name   = substr(basename(path.cwd), 0, 12)
+  #name   = substr(basename(path.cwd), 0, 12)
+  name   = "demo-bootstrap"
   region = "us-west-2"
   tags = {
     Sample     = local.name

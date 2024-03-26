@@ -8,7 +8,7 @@ data "aws_ami" "eks_bottlerocket" {
 
   filter {
     name   = "name"
-    values = ["bottlerocket-aws-k8s-1.27-x86_64-v1.15*"]
+    values = ["bottlerocket-aws-k8s-1.28-x86_64-v1.18*"]
   }
 }
 
@@ -20,7 +20,7 @@ module "eks" {
   version = "~> 19.21"
 
   cluster_name                   = local.name
-  cluster_version                = "1.27"
+  cluster_version                = "1.28"
   cluster_endpoint_public_access = true
 
   cluster_enabled_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
@@ -38,11 +38,33 @@ module "eks" {
     vpc-cni = {
       most_recent              = true
       before_compute           = true
-      service_account_role_arn = module.vpc_cni_irsa.iam_role_arn
+      #service_account_role_arn = module.vpc_cni_irsa.iam_role_arn
     }
   }
 
   manage_aws_auth_configmap = true
+  aws_auth_roles = [
+    # We need to add in the Karpenter node IAM role for nodes launched by Karpenter
+    {
+      rolearn  = module.eks_blueprints_addons.karpenter.node_iam_role_arn
+      username = "system:node:{{EC2PrivateDNSName}}"
+      groups = [
+        "system:bootstrappers",
+        "system:nodes",
+      ]
+    },
+    {
+      rolearn  = "arn:aws:iam::978045894046:role/ReadOnly"
+      username = "audit"
+      groups   = [""]
+    },
+    {
+      rolearn  = "arn:aws:iam::978045894046:role/PowerUser"
+      username = "operators"
+      groups   = ["system:masters"]
+
+    }
+  ]
 
   eks_managed_node_group_defaults = {
     ami_type       = "BOTTLEROCKET_x86_64"
@@ -88,25 +110,25 @@ module "eks" {
       # The next line MUST be uncomment if using a custom_launch_template is set to true
       enable_bootstrap_user_data = true
 
-      # Uncomment the following block to customize your Bottlerocket user-data, these are some examples of valid arguments
-      #   bootstrap_extra_args       = <<-EOT
-      #       [settings.host-containers.admin]
-      #       enabled = false
+      # The following block customize your Bottlerocket user-data, you can comment if you don't need any customizations or add more parameters.
+      bootstrap_extra_args = <<-EOT
+            [settings.host-containers.admin]
+            enabled = false
 
-      #       [settings.host-containers.control]
-      #       enabled = true
+            [settings.host-containers.control]
+            enabled = true
 
-      #       [settings.kernel]
-      #       lockdown = "integrity"
+            [settings.kernel]
+            lockdown = "integrity"
 
-      #       [settings.kubernetes.node-labels]
-      #       "foo" = "bar"
+            [settings.kubernetes.node-labels]
+            "bottlerocket.aws/updater-interface-version" = "1.0.0"
 
-      #       [settings.kubernetes.node-taints]
-      #       dedicated = "experimental:PreferNoSchedule"
-      #       special = "true:NoSchedule"
-      #     EOT
+            [settings.kubernetes.node-taints]
+            "CriticalAddonsOnly" = "true:NoSchedule"
+          EOT
 
+      # It is also possible to set labels and taints using the following blocks other than the bootstrap arguments above
       #   labels = {
       #     GithubRepo = "terraform-aws-eks"
       #     GithubOrg  = "terraform-aws-modules"
@@ -120,7 +142,6 @@ module "eks" {
       #     }
       #   ]
 
-      # Uncomment the following block to automatically label nodes for Bottlerocket Update Operator
       # labels = {
       #   "bottlerocket.aws/updater-interface-version" = "2.0.0"
       # }
@@ -130,23 +151,23 @@ module "eks" {
   tags = local.tags
 }
 
-module "vpc_cni_irsa" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.0"
+# module "vpc_cni_irsa" {
+#   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+#   version = "~> 5.0"
 
-  role_name_prefix      = "VPC-CNI-IRSA"
-  attach_vpc_cni_policy = true
-  vpc_cni_enable_ipv4   = true
+#   role_name_prefix      = "VPC-CNI-IRSA"
+#   attach_vpc_cni_policy = true
+#   vpc_cni_enable_ipv4   = true
 
-  oidc_providers = {
-    main = {
-      provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["kube-system:aws-node"]
-    }
-  }
+#   oidc_providers = {
+#     main = {
+#       provider_arn               = module.eks.oidc_provider_arn
+#       namespace_service_accounts = ["kube-system:aws-node"]
+#     }
+#   }
 
-  tags = local.tags
-}
+#   tags = local.tags
+# }
 
 module "ebs_kms_key" {
   source  = "terraform-aws-modules/kms/aws"

@@ -1,0 +1,38 @@
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: cost-optimization
+spec:
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    expireAfter: 24h0m0s
+  limits:
+    cpu: 1k
+  template:
+    metadata:
+      labels:
+        team: cost-opt
+    spec:
+      kubelet:
+        maxPods: 110
+      nodeClassRef:
+        name: default
+      requirements:
+        - key: "karpenter.k8s.aws/instance-category"
+          operator: In
+          values: ["t"]
+        - key: "karpenter.k8s.aws/instance-cpu"
+          operator: In
+          values: ["8", "16", "32"]
+        - key: "karpenter.k8s.aws/instance-hypervisor"
+          operator: In
+          values: ["nitro"]
+        - key: "topology.kubernetes.io/zone"
+          operator: In
+          values: ["us-west-2a", "us-west-2b", "us-west-2c"]
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
