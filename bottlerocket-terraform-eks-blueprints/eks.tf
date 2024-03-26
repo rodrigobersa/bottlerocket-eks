@@ -36,35 +36,13 @@ module "eks" {
       most_recent = true
     }
     vpc-cni = {
-      most_recent              = true
-      before_compute           = true
+      most_recent    = true
+      before_compute = true
       #service_account_role_arn = module.vpc_cni_irsa.iam_role_arn
     }
   }
 
-  manage_aws_auth_configmap = true
-  aws_auth_roles = [
-    # We need to add in the Karpenter node IAM role for nodes launched by Karpenter
-    {
-      rolearn  = module.eks_blueprints_addons.karpenter.node_iam_role_arn
-      username = "system:node:{{EC2PrivateDNSName}}"
-      groups = [
-        "system:bootstrappers",
-        "system:nodes",
-      ]
-    },
-    {
-      rolearn  = "arn:aws:iam::978045894046:role/ReadOnly"
-      username = "audit"
-      groups   = [""]
-    },
-    {
-      rolearn  = "arn:aws:iam::978045894046:role/PowerUser"
-      username = "operators"
-      groups   = ["system:masters"]
-
-    }
-  ]
+  # authentication_mode = "CONFIG_MAP"
 
   eks_managed_node_group_defaults = {
     ami_type       = "BOTTLEROCKET_x86_64"
@@ -105,7 +83,7 @@ module "eks" {
         }
       }
       # The following line MUST be changed to true if you want to use a custom ami_id
-      use_custom_launch_template = true 
+      use_custom_launch_template = true
 
       # The next line MUST be uncomment if using a custom_launch_template is set to true
       enable_bootstrap_user_data = true
@@ -149,25 +127,35 @@ module "eks" {
   }
 
   tags = local.tags
+
+  # }
+
+  # module "aws_auth" {
+  #   source  = "terraform-aws-modules/eks/aws//modules/aws-auth"
+  #   version = "~> 20.0"
+
+  manage_aws_auth_configmap = true
+  aws_auth_roles = [
+    # {
+    #   rolearn  = module.eks.eks_managed_node_groups.bottlerocket.iam_role_arn
+    #   username = "system:node:{{EC2PrivateDNSName}}"
+    #   groups = [
+    #     "system:bootstrappers",
+    #     "system:nodes",
+    #   ]
+    # },
+    # We need to add in the Karpenter node IAM role for nodes launched by Karpenter
+    {
+      rolearn  = module.eks_blueprints_addons.karpenter.node_iam_role_arn
+      username = "system:node:{{EC2PrivateDNSName}}"
+      groups = [
+        "system:bootstrappers",
+        "system:nodes",
+      ]
+    }
+  ]
+
 }
-
-# module "vpc_cni_irsa" {
-#   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-#   version = "~> 5.0"
-
-#   role_name_prefix      = "VPC-CNI-IRSA"
-#   attach_vpc_cni_policy = true
-#   vpc_cni_enable_ipv4   = true
-
-#   oidc_providers = {
-#     main = {
-#       provider_arn               = module.eks.oidc_provider_arn
-#       namespace_service_accounts = ["kube-system:aws-node"]
-#     }
-#   }
-
-#   tags = local.tags
-# }
 
 module "ebs_kms_key" {
   source  = "terraform-aws-modules/kms/aws"
