@@ -2,7 +2,7 @@
 # EKS Blueprints Addons
 ################################################################################
 data "aws_ecrpublic_authorization_token" "token" {
-  provider = aws.virginia
+  provider = aws.ecr
 }
 
 module "eks_blueprints_addons" {
@@ -56,9 +56,8 @@ module "eks_blueprints_addons" {
   karpenter = {
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
-    version             = "v0.35"
-
   }
+  
   bottlerocket_shadow = {
     name = "brupop-crd"
   }
